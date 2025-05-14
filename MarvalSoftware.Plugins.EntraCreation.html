@@ -480,7 +480,6 @@ var jsonString = JsonConvert.SerializeObject(jsonData, Formatting.Indented);
               var githubPluginVersion = "";
               try {
                 githubPluginVersion = await (await fetch(url)).json();
-                console.log("Have pluginversion as ", githubPluginVersion);
                 if (!githubPluginVersion) {
                   throw new Error(`Server responded with ${githubPluginVersion.status} - ${githubPluginVersion.statusText}`);
                 }
@@ -660,7 +659,7 @@ color: transparent;
                       foundItem = true;
                       EntraCreation._requestActionMessageID = $(this).attr('href').match(/id=(\d+)$/)[1];
                     }
-             
+                    // console.log($(this).attr('search'));
 
                   });
                 if (foundItem == true) {
@@ -871,7 +870,19 @@ var jsonString = JsonConvert.SerializeObject(jsonData, Formatting.Indented);
 
 
                             `;
-     
+              //const filename = "requestActionMessage.txt";
+
+              // const blob = new Blob([downloadFile], {
+              //   type: "text/plain;charset=utf-8",
+              // });
+              // const url = URL.createObjectURL(blob);
+              // const link = document.createElement("a");
+              // link.href = url;
+              // link.download = filename;
+              // document.body.appendChild(link);
+              // link.click();
+              // document.body.removeChild(link);
+              // URL.revokeObjectURL(url);
 
             }
 
@@ -1075,7 +1086,9 @@ var jsonString = JsonConvert.SerializeObject(jsonData, Formatting.Indented);
             window.top.document.getElementById("configureSettings").onclick = openConfigureSettingsDialog;
             window.top.document.getElementById("setConfiguration").onclick = setConfiguration;
 
-          
+            // window.top.document.getElementById("createActionRule").onclick = createActionRule;
+            // window.top.document.getElementById("createActionRule").addEventListener("click", createActionRule);
+
             $(".close").on("click", function (event) {
               event.preventDefault();
               console.log("Called close");
@@ -1084,7 +1097,7 @@ var jsonString = JsonConvert.SerializeObject(jsonData, Formatting.Indented);
               $('#setupActionRuleModal').fadeOut();
               $('#configureSettingsModal').fadeOut();
 
-         
+              // alert( "Handler for `click` called." );
             });
 
           }
@@ -1100,11 +1113,11 @@ var jsonString = JsonConvert.SerializeObject(jsonData, Formatting.Indented);
             }
             var page = MarvalSoftware.UI.Controls.ScriptManager.getInstance().getPage();
 
-       
+            // attach the display element
             var template = document.querySelector('template').content;
             this._element = window.top.document.importNode(template, true);
             this._imageElement = this._element.querySelector('#MarvalSoftware-Plugins-EntraCreation');
-           
+            //   page._contactSearcher._extensionInput.parentElement.insertBefore(this._element, page._contactSearcher._extensionInput.nextSibling);
           }.bind(this));
 
         }, // End init
