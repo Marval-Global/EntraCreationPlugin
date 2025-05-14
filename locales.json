@@ -1,0 +1,20 @@
+{
+	"defaultLocale": "en-GB",
+	"resources": 
+		[{
+			"en-GB": {
+				"MessageFormat": "Message Format",
+				"CustomerGUID": "Customer Identifier",
+				"CustomerName": "Customer Name",
+				"SecretKey": "Secret Key",
+				"PluginDisplayname": "Entra User Creation",
+				"EntraIDAppicationString": "Encrypted application string",
+				"Settings": "Settings",
+				"ApplicationSecret": "The secret from the App Registration",
+				"EntraCreationAuthToken": "Twilio From Phone Number",
+				"ChatbotHostOverride":  "Chatbot Host Override",
+				"MarvalAPIKey": "Marval API Key",
+			    "Region": "Region"
+			}
+		}]	
+}

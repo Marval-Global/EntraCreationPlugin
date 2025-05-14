@@ -1,0 +1,1209 @@
+<script type="text/javascript" src="Template.js"></script>
+<template>
+  <style>
+    .pluginWrapper {
+      display: none;
+    }
+
+    .contactSearcher .telephone {
+      width: 86px;
+    }
+
+    .MarvalSoftware-EntraCreation {
+      display: none;
+    }
+
+    .window .MarvalSoftware-EntraCreation {
+      display: block;
+    }
+
+    .MarvalSoftware-EntraCreation {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      border: none;
+    }
+
+    .EntraCreationWindow {
+      border: 0px;
+    }
+
+    .MarvalSoftware-EntraCreation a {
+      color: #3B73AF;
+    }
+
+    .MarvalSoftware-EntraCreation>.header {
+      position: absolute;
+      top: 0px;
+      left: 0px;
+      right: 0px;
+      line-height: 0px;
+    }
+
+    .MarvalSoftware-EntraCreation>.header>a {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      right: 0;
+      text-decoration: none;
+      border: none;
+    }
+
+    .MarvalSoftware-EntraCreation>.chatbot-container {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      width: 350px;
+      height: 550px;
+      border-radius: 8px;
+      overflow: hidden;
+      display: none;
+      z-index: 1000;
+    }
+
+    .chatbot-container iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+  </style>
+</template>
+
+<div class="MarvalSoftware-EntraCreation">
+</div>
+<script>
+  (function () {
+
+    var EntraCreation = null
+    var MarvalSoftware = window.top.MarvalSoftware;
+    var $ = window.top.$;
+    MarvalSoftware.Plugins.define("MarvalSoftware-Plugins-EntraCreation",
+      {
+        _pluginPath: null,
+        _element: null,
+        _imageElement: null,
+        _contactEmail: "...",
+        _pluginWindow: null,
+        _fullPluginPathHandler: null,
+        _requestActionMessageID: null,
+        _popupBody: null,
+        init: function () {
+
+          EntraCreation = this;
+
+          var currentUrl = window.top.location.host;
+
+          var _fullPluginPathHandler = "https://" + currentUrl + EntraCreation._getPluginPath() + "Handler/Handler.ashx";
+
+          var HeaderText = $('#ctl00_ctl00_cph_entityHeaderText').text();
+          var currentUrl = window.top.location.href;
+          if (currentUrl.includes("Plugin.aspx") && HeaderText == 'MarvalSoftware.Plugins.EntraCreation') {
+            $('#ct100_overlay_id1').hide();
+            $('#ctl00_ctl00_cph_maintenance_worksWithMsm').removeClass('unsigned');
+            $('#ctl00_ctl00_cph_maintenance_worksWithMsm').addClass('signed');
+            checkRequestActionMessageExists();
+            var that = this;
+
+            var urlGenerator = currentUrl.split('RFP');
+            var version = $('#ctl00_ctl00_cph_maintenance_version').text();
+            //    console.log("Setting up the text....")
+
+            var FullURL = urlGenerator[0] + 'RFP/Plugins/Marval%20Software/MarvalSoftware.Plugins.EntraCreation/' + version + '/Handler/Handler.ashx?tag=EntraCreation';
+            $('#installation').after("<br><p><b>To use this plugin, put the following URL into Request Actions.</b><p><br>" + FullURL + '<br> You also need to set a header with the Content-Type as application/x-www-form-urlencoded');
+            headerElem = $('#ctl00_ctl00_cph_entityHeaderText')
+            $('#ctl00_ctl00_cph_maintenance_quickFields').hide();
+
+            async function checkConfigureSettings() {
+
+              let settingsVal = $('#ctl00_ctl00_cph_maintenance_globalSettingsRepeater_ctl02_value').val();
+              console.log("Have settings value as ", settingsVal);
+              if (settingsVal) {
+
+              } else {
+                $('.configureSettingsText').empty();
+                $('.configureSettingsText').append("You have not yet configured your settings, please configure your settings before using the request actions integration.");
+                $('.configureSettingsText').css('color', 'red');
+              }
+
+            }
+
+            async function getRequestActionUsage() {
+
+              var getRequestActionUsage = await (await fetch("/MSM/RFP/Forms/RequestActions.aspx")).text();
+
+              var $tempContainer = $('<div>').html(getRequestActionUsage);
+              var context = $tempContainer.find('#ctl00_ctl00_ctl00_cph_ruleSetEditor_rules').val();
+
+              var decodedString = $('<textarea/>').html(context).text();
+              try {
+                var jsonObject = JSON.parse(decodedString);
+                let foundActionMessage = false;
+                let countItems = 0;
+
+                jsonObject.forEach(element => {
+                  countItems++;
+                  if (element.Actions.includes("MarvalSoftware.Plugins.EntraCreation/") && element.Actions.includes(version)) {
+                    $('#requestActionUsage').after("<div id=\"RequestUsage\">You are currently using the EntraCreation request action message in a request action.</div>");
+                    $('#RequestUsage').css("color", "green");
+                    foundActionMessage = true;
+                    return;
+                  } else if (element.Actions.includes("MarvalSoftware.Plugins.EntraCreation/")) {
+                    $('#requestActionUsage').after("<div id=\"RequestUsage\">It appears as though you are currently not using the correct version (" + version + ") of the request action in an action message.<br>Navigate <a target='_blank' href='/MSM/RFP/Forms/RequestAction.aspx?id=" + element.Identifier + "'>here</a> to set the correct version.</div>");
+                    $('#RequestUsage').css("color", "red");
+                    foundActionMessage = true;
+                    return;
+                  }
+                });
+
+                if (countItems === jsonObject.length && !foundActionMessage) {
+                  $('#requestActionUsage').after('<div id="RequestUsage">You do not have a request action configured.<br>Click the button above to install it.<br>Once it is installed, click <a target="_blank" href="/MSM/RFP/Forms/RequestActions.aspx">here</a> and look for an item called "Entra Action Rule - Automated" </div>');
+                  $('#RequestUsage').css("color", "red");
+                }
+
+              } catch (error) {
+                console.error('Error parsing JSON:', error);
+              }
+            }
+
+            function downloadPowershellSnippet() {
+              var currentUrlHost = window.top.location.host;
+              var pluginPathHandler = "https://" + currentUrlHost + EntraCreation._getPluginPath() + "Handler/Handler.ashx";
+              const encodedFullUrlPluginPath = encodeURI(pluginPathHandler);
+              var PSSnippet = `
+Connect-AzAccount
+
+$displayName     = "Marval-Entra-Automation"
+$replyUrl        = "https://localhost"    
+$secretEndDate   = (Get-Date).AddYears(2)   
+$graphApiAppId   = "00000003-0000-0000-c000-000000000000" 
+
+
+$mailSendAppPerm           = "b633e1c5-b582-4048-a93e-9f11b44c7e96"  
+$userReadWriteAllAppPerm   = "741f803b-c850-494e-b5df-cde7c675a1ca" 
+
+
+$app = New-AzADApplication \`
+          -DisplayName     $displayName \`
+          -AvailableToOtherTenants:$false \`
+          -ReplyUrls       $replyUrl
+
+$sp  = New-AzADServicePrincipal -ApplicationId $app.AppId
+
+
+Add-AzADAppPermission -ObjectId $app.Id \`
+                      -ApiId    $graphApiAppId \`
+                      -PermissionId $mailSendAppPerm \`
+                      -Type     Role
+
+Add-AzADAppPermission -ObjectId $app.Id \`
+                      -ApiId    $graphApiAppId \`
+                      -PermissionId $userReadWriteAllAppPerm \`
+                      -Type     Role
+
+
+$secret = New-AzADAppCredential -ApplicationId $app.AppId -EndDate $secretEndDate
+
+Write-Host "Client ID     : $($app.AppId)"
+Write-Host "Client Secret : $($secret.SecretText)"
+Write-Host "Secret expiry : $($secret.EndDateTime)"
+
+$tenantId         = (Get-AzContext).Tenant.Id
+$stringToEncrypt  = "$tenantId\`^$($app.AppId)\`^$($secret.SecretText)"
+
+$body = @{
+    action        = 'encrypt'
+    encryptString = $stringToEncrypt
+}
+
+$jsonBody = $body | ConvertTo-Json
+
+
+$responseEncrytped = Invoke-RestMethod \`
+    -Method       POST \`
+    -Uri          '${encodedFullUrlPluginPath}' \`
+    -Body         $jsonBody \`
+    -ContentType 'application/json'
+
+Write-Host "Please put the encrypted text below into the Entra Creation Plugin" -ForegroundColor Green
+
+Write-Host "$responseEncrytped" -ForegroundColor Green
+
+Write-Host "You will also be required to grant admin consent to the newly created app registration" -ForegroundColor Green
+`;
+              const blob = new Blob([PSSnippet], { type: "text/plain" });
+              const url = URL.createObjectURL(blob);
+              $("<a>")
+                .attr({
+                  href: url,
+                  download: "createEntraAppRegistration.ps1"
+                })
+                .appendTo("body")
+                .get(0)
+                .click();
+              URL.revokeObjectURL(url);
+            }
+
+            async function createActionMessage(event) {
+
+
+            }
+
+
+            async function createActionRule(event) {
+              event.preventDefault();
+              await fetch(_fullPluginPathHandler, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  action: "getWorkflows"
+                })
+              });
+
+              await fetch(_fullPluginPathHandler, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  action: "getWorkflowStatuses"
+                })
+              });
+
+              console.log("Creating action rule");
+              const $spinner = $('#InstallRequestActionRuleSpinner');
+              const $response = $('#installRequestActionRuleResponse');
+              $response.empty();
+              $spinner.show();
+              const encodedFullUrl = encodeURI(_fullPluginPathHandler);
+
+              try {
+                const res = await fetch(_fullPluginPathHandler, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    action: "createActionRule",
+                    actionMessageId: EntraCreation._requestActionMessageID,
+                    actionMessageURL: encodedFullUrl
+                  })
+                });
+
+                if (!res.ok) {
+
+                  const errText = await res.text();
+                  throw new Error(`Server returned ${res.status}: ${errText}`);
+                }
+
+                const snippetFile = await res.json();
+                $response.text(snippetFile.response);
+
+              } catch (err) {
+                console.error("Error creating action rule:", err);
+                $response.append(`❌ Failed to create rule: ${err.message}`);
+              } finally {
+
+                $spinner.hide();
+              }
+            }
+            async function InstallRequestActionRule() {
+              event.preventDefault();
+              $('#InstallRequestActionRule').attr('disabled', true);
+              $('#InstallRequestActionRuleSpinner').show();
+              $('#InstalledRequestionActionRuleResponse').empty();
+              $('#InstalledRequestionActionRuleResponse').css('color', 'green');
+              var Workflow = $("#workflowDropdown  option:selected").text();
+              var WorkflowStatus = $("#workflowStatusDropdown  option:selected").text();
+              if (Workflow === '-- Select a Workflow --' || WorkflowStatus === '-- Select a Workflow Status --') {
+                $('#InstalledRequestionActionRuleResponse').empty();
+                $('#InstallRequestActionRule').attr('disabled', false);
+                $('#InstalledRequestionActionRuleResponse').append('You must specify an attribute for each item');
+                $('#InstalledRequestionActionRuleResponse').css('color', 'red');
+                $('#InstallRequestActionRuleSpinner').hide();
+                return;
+              } else {
+                console.log("Selected is ", $("#workflowStatusDropdown option:selected"));
+                var WorkflowStatusId = $("#workflowStatusDropdown option:selected").val();
+                var WorkflowId = $("#workflowDropdown option:selected").val();
+                const encodedFullUrl = encodeURI(_fullPluginPathHandler);
+                var createActionRule = await (await fetch(_fullPluginPathHandler, {
+                  "method": "POST",
+                  body: JSON.stringify({ actionMessageId: EntraCreation._requestActionMessageID, actionMessageURL: encodedFullUrl, WorkflowStatusId: WorkflowStatusId, WorkflowId: WorkflowId, action: "createActionRule" }),
+                  "headers": [["content-type", "application/json"]]
+                })).json();
+
+                $('#InstallRequestActionRuleSpinner').hide();
+                $('#InstallRequestActionRule').attr('disabled', false);
+                $('#InstalledRequestionActionRuleResponse').append(createActionRule.response);
+
+
+              }
+
+            }
+
+            async function InstallRequestActionMessage() {
+              event.preventDefault();
+              $('#InstallRequestActionMessageSpinner').show();
+              $('#InstalledRequestionActionMessageResponse').empty();
+              $('#InstalledRequestionActionMessageResponse').css('color', 'green');
+              var actionMessageText = `
+@using System;
+@using Newtonsoft.Json;
+@{
+    var fullName= "fullName";
+    var email = "email";
+    var mailNickname= "mailNickname";
+}
+
+@{
+foreach (var item in Model.Attributes)
+{
+ if (item.Type.Name == "[EMAIL]") {
+   email = @item.Value;
+}
+ if (item.Type.Name == "[mailNickname]") {
+   mailNickname= @item.Value;
+}
+ if (item.Type.Name == "[fullName]") {
+   fullName = @item.Value;
+}
+}
+
+@{
+    string RequestNumber = Model.RequestNumber;
+    var RequestNumberLength = Model.RequestNumber.Length;
+    var NewRequestNumber = "";
+}
+@{
+    for (var i = 0; i < RequestNumberLength; i++)
+    {
+        var stringnew = RequestNumber.Substring(i, 1);
+        NewRequestNumber = NewRequestNumber + " " + stringnew;
+    }
+}
+@{
+    var action = "EntraCreation";
+    var Message = "";
+
+@using Newtonsoft.Json;
+    var jsonData = new { mailNickname= mailNickname, action = action, email = email, fullName= fullName, requestId = @Model.Identifier};
+
+var jsonString = JsonConvert.SerializeObject(jsonData, Formatting.Indented);
+}
+@jsonString
+                            `;
+
+              var fullNameAttribute = $("#attributeTypeDropdownFullname  option:selected").text();
+              var EmailAttribute = $("#attributeTypeDropdownEmail  option:selected").text();
+              var NicknameAttribute = $("#attributeTypeDropdownMailNickname  option:selected").text();
+
+              // console.log("User full name is ", fullNameAttribute);
+              actionMessageText = actionMessageText.replace("[mailNickname]", NicknameAttribute);
+              actionMessageText = actionMessageText.replace("[fullName]", fullNameAttribute);
+              actionMessageText = actionMessageText.replace("[EMAIL]", EmailAttribute);
+              if (NicknameAttribute === '-- Select an attribute --' || fullNameAttribute === '-- Select an attribute --' || EmailAttribute === '-- Select an attribute --') {
+                $('#InstalledRequestionActionMessageResponse').empty();
+                $('#InstalledRequestionActionMessageResponse').append('You must specify an attribute for each item');
+                $('#InstalledRequestionActionMessageResponse').css('color', 'red');
+                $('#InstallRequestActionMessageSpinner').hide();
+                return;
+              }
+              var currentUrl = window.top.location.host;
+              var pluginPathHandler = "https://" + currentUrl + EntraCreation._getPluginPath() + "Handler/Handler.ashx";
+              $('#InstallRequestActionMessage').attr('disabled', true);
+
+
+
+              var snippetFile = await (await fetch(pluginPathHandler, {
+                "method": "POST",
+                body: JSON.stringify({ action: "createActionMessage", actionMessageText: actionMessageText }),
+                "headers": [["content-type", "application/json"]]
+              })).json();
+
+              $('#InstallRequestActionMessageSpinner').hide();
+              $('#InstallRequestActionMessage').attr('disabled', false);
+              $('#InstalledRequestionActionMessageResponse').append(snippetFile.response);
+              //  console.log("Have snippet as ", snippetFile);
+            }
+
+            async function testPlugin() {
+              event.preventDefault();
+              $('#TestResponse').hide();
+              $('#Testspinner').show();
+              var currentUrl = window.top.location.host;
+              var pluginPathHandler = "https://" + currentUrl + EntraCreation._getPluginPath() + "Handler/Handler.ashx";
+              //   console.log("Have pluginPath as ", EntraCreation._getPluginPath());
+              //  console.log("Have current url as ", currentUrl);
+              //  var pluginPathHandler = encodeURI(pluginPathHandler);
+              //  console.log("Fetching url ", pluginPathHandler);
+              //  var encode = btoa(pluginPathHandler);
+              try {
+
+
+                var snippetFile = await (await fetch(pluginPathHandler + "?endpoint=testPlugin")).json();
+              } catch {
+                $('#TestResponse').text("An unknown error occurred");
+                $('#TestResponse').css("color", "red");
+                $('#TestResponse').show();
+                $('#Testspinner').hide();
+              }
+              if (snippetFile.error) {
+                //  console.log("Have error as ", snippetFile.error);
+                $('#TestResponse').text("Error " + snippetFile.error + " \n cooresponding appID is " + snippetFile.appID);
+                $('#TestResponse').css("color", "red");
+                $('#TestResponse').show();
+                $('#Testspinner').hide();
+              } else {
+                $('#TestResponse').text("Token is Valid for appID " + snippetFile.appID + ". Ensure that you have granted admin consent for the application.");
+                $('#TestResponse').css("color", "green");
+                $('#TestResponse').show();
+                $('#Testspinner').hide();
+              }
+              //   console.log("Have response from Test plugin as ", snippetFile);
+
+            }
+
+            async function getPluginSnippet() {
+              event.preventDefault();
+              var currentUrl = window.top.location.host;
+              var pluginPathHandler = "https://" + currentUrl + EntraCreation._getPluginPath() + "Handler/Handler.ashx";
+              //  console.log("Have pluginPath as ", EntraCreation._getPluginPath());
+              //  console.log("Have current url as ", currentUrl);
+              var pluginPathHandler = encodeURI(pluginPathHandler);
+              //  console.log("Fetching url ", pluginPathHandler);
+              var encode = btoa(pluginPathHandler);
+              var snippetFile = await (await fetch(pluginPathHandler + "?endpoint=getSnippet&urlEndpoint=" + encode)).json();
+              //   console.log("Have snippet file as ", snippetFile);
+
+            }
+
+            async function getLatestPluginVersion() {
+              var url = "https://raw.githubusercontent.com/Marval-Global/EntraCreationPlugin/refs/heads/main/manifest.json";
+              var githubPluginVersion = "";
+              try {
+                githubPluginVersion = await (await fetch(url)).json();
+                if (!response.ok) {
+                  throw new Error(`Server responded with ${response.status} – ${response.statusText}`);
+                }
+              } catch (err) {
+                console.error("Failed to load GitHub plugin version:", err);
+                throw err;
+              }
+
+              var pagePluginVersion = $('#ctl00_ctl00_cph_maintenance_version').text();
+
+              if (pagePluginVersion == githubPluginVersion.Version) {
+                $('#ctl00_ctl00_cph_maintenance_version').css("color", "green");
+                $('#ctl00_ctl00_cph_maintenance_version').css("font-weight", "bold");
+
+                $('#uptodatemessage').fadeIn(250);
+                setTimeout(() => {
+                  $('#uptodatemessage').fadeOut(1000);
+                }, 2000);
+              } else {
+                $('#ctl00_ctl00_cph_maintenance_version').css("color", "red");
+                $('#ctl00_ctl00_cph_maintenance_version').css("font-weight", "bold");
+                $('#ctl00_ctl00_cph_maintenance_version').append(' - Plugin requires updating. Click <a href="https://github.com/Marval-Global/EntraCreationPlugin/releases/latest/download/MarvalSoftware.Plugins.EntraCreation.zip">here</a> for the new version.');
+              }
+            }
+
+            $(document).ready(function () {
+
+              getLatestPluginVersion();
+              getRequestActionUsage();
+              checkConfigureSettings();
+
+              $('head').append(`
+        <style>
+          .loadingSpinner {
+  width: 8px;
+  height: 8px;
+  border: 6px solid #3B73AF;       
+  border-top-color: #1696B7;       
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  /* 🎨 optional centering helpers: */
+  display: inline-block;
+  vertical-align: middle;
+}
+
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+          .hrefButton {
+            display: inline-block;
+            background-color: #1696B7;
+            color: #ffffff;
+            padding: 2px 12px;
+            text-decoration: none;
+            cursor: pointer;
+            border-radius: 4px;
+            font-weight: bold;
+            transition: background-color 0.3s;
+          }
+          .hrefButton:hover {
+            background-color: #0056b3;
+             color: #ffffff;
+          }
+.modalBox {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: none;                 /* toggle with JS */
+  place-items: center;
+  background: rgba(7, 63, 92, .60);   /* #073f5c with 60 % opacity */
+  backdrop-filter: blur(2px);
+}
+
+/* 🗂️  Content card -------------------------------------------------------- */
+.modal-content {
+  width: min(600px, 90%);
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0,0,0,.25);
+  padding: 2.5rem 2.25rem;
+  animation: pop .35s ease;
+  position: relative;
+  font-family: "Segoe UI", Roboto, sans-serif;
+}
+
+/* 🎀 Header */
+.modal-content h2 {
+  margin: 0 0 1.25rem;
+  font-size: 1.5rem;
+  line-height: 1.2;
+  color: #073f5c;
+}
+.modal-content h2 span {
+  border-bottom: 3px solid #1696B7;
+  padding-bottom: .25rem;
+}
+
+
+#isRequestActionMessageInstalled {
+  color: transparent;
+  transition: color 1s ease-in-out;
+}
+
+#requestActionUsage {
+  color: transparent;
+  transition: color 1s ease-in-out;
+}
+#RequestUsage
+{
+color: transparent;
+  transition: color 1s ease-in-out;
+}
+
+/* ✅ Steps */
+.modal-steps {
+  margin: 0;
+  padding-left: 1.25rem;
+  list-style: disc;
+  color: #073f5c;
+}
+.modal-steps li {
+  margin-bottom: .9rem;
+}
+.modal-steps a {
+  color: #1696B7;
+  text-decoration: underline;
+}
+.modal-steps a:hover {
+  text-decoration: none;
+}
+
+
+.close {
+  position: absolute;
+  top: .75rem;
+  right: .75rem;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: #1696B7;
+  color: #fff;
+  font-size: 1.25rem;
+  line-height: 1;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: background .2s ease;
+}
+.close:hover { background: #073f5c; }
+
+/* 📈 Subtle pop-in */
+@keyframes pop {
+  0%   { transform: scale(.85); opacity: 0; }
+  100% { transform: scale(1);   opacity: 1; }
+}
+
+
+        </style>
+      `);
+            });
+            function openDialog() {
+              event.preventDefault();
+              $('#installInstructionsModal').fadeIn(200);
+
+            }
+            function checkRequestActionMessageExists() {
+              var requestActionMessageName = "Entra Integration Message - Automated";
+              var foundItem = false;
+              $.get('/MSM/RFP/Forms/RequestActionMessage.aspx', function (html) {
+                $(html).find('#ctl00_ctl00_ctl00_cph_existingEntitiesContentPlaceHolder_ExistingEntitiesList_loadMoreList_items a.item')
+
+                  .each(function () {
+
+                    if ($(this).attr('title') == requestActionMessageName) {
+
+                      foundItem = true;
+                      EntraCreation._requestActionMessageID = $(this).attr('href').match(/id=(\d+)$/)[1];
+                    }
+                    // console.log($(this).attr('search'));
+
+                  });
+                if (foundItem == true) {
+
+                  $('#isRequestActionMessageInstalled').append('You have a request action messages in your list of request action messages <a href="/MSM/RFP/Forms/RequestActionMessage.aspx" >here</a>, you do not need to install it.');
+                  $('#isRequestActionMessageInstalled').css('color', 'green');
+                  $('#isRequestActionMessageInstalled').attr('')
+                } else {
+                  $('#isRequestActionMessageInstalled').append('You currently do not have the action message installed, click the button above to install it.<br>Once installed, it will appear in the list <a href="/MSM/RFP/Forms/RequestActionMessage.aspx">here</a> as an item called "Entra Integration Message - Automated"');
+                  $('#isRequestActionMessageInstalled').css('color', 'red');
+                }
+              })
+                .fail(function () {
+                  // //  $select.empty()
+                  //     .append('<option disabled>Error loading list</option>');
+                });
+
+            }
+            function openDialogModal() {
+              event.preventDefault();
+              $('#installInstructionsModal').fadeOut(200);
+            }
+
+            function OpenInstallRequestRuleDialog() {
+              event.preventDefault();
+              $('#setupActionRuleModal').fadeIn(200);
+              var getRequestAtributes = fetch(_fullPluginPathHandler, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  action: "getRequestAtributes"
+                })
+              });
+
+              var getWorkflowStatuses = fetch(_fullPluginPathHandler, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  action: "getWorkflowStatuses"
+                })
+              });
+              getWorkflowStatuses.then(async workflowStatuses => {
+                var jsonWorkflowStatusData = await workflowStatuses.json();
+                // console.log("Have workflows statuses as ", jsonWorkflowStatusData);
+                var $select = $('#workflowStatusDropdown');
+                $select.empty();
+                $select.append('<option value="">-- Select a Workflow Status --</option>');
+                jsonWorkflowStatusData.forEach(element => {
+                  $select.append($('<option>').val(element.Identifier).text(element.Name));
+                })
+              })
+              var getWorkflows = fetch(_fullPluginPathHandler, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  action: "getWorkflows"
+                })
+              });
+              getWorkflows.then(async workflows => {
+                var jsonworkflowData = await workflows.json();
+                //    console.log("Have workflow data as ", jsonworkflowData);
+                var $select = $('#workflowDropdown');
+                $select.empty();
+                $select.append('<option value="">-- Select a Workflow --</option>');
+                jsonworkflowData.forEach(element => {
+                  $select.append($('<option>').val(element.Identifier).text(element.Name));
+                  //     console.log("Have element ", element);
+                })
+              })
+            }
+
+            function setConfiguration() {
+              event.preventDefault();
+              console.log("Setting Configuration");
+              let settings = [];
+              settings.push({ "success": $("#workflowStatusDropdownSuccess option:selected").val() });
+              settings.push({ "notsuccess": $("#workflowStatusDropdownNotSuccess option:selected").val() });
+              let settingsConfiguration = { settings: settings };
+              console.log("Settings are ", settingsConfiguration);
+              const field = window.top.document.getElementById("ctl00_ctl00_cph_maintenance_globalSettingsRepeater_ctl02_value");
+              field.value = JSON.stringify(settingsConfiguration);
+              $('#ctl00_ctl00_cph_apply_fakeApplyButton').click();
+            }
+
+
+            function openConfigureSettingsDialog() {
+              event.preventDefault();
+              const field = window.top.document.getElementById("ctl00_ctl00_cph_maintenance_globalSettingsRepeater_ctl02_value");
+              $('#configureSettingsModal').fadeIn(200);
+
+              let fieldInformation;
+              const raw = field && field.value ? field.value.trim() : "";
+              if (raw) {
+                try {
+                  fieldInformation = JSON.parse(raw);
+                } catch (err) {
+                  console.error("Invalid JSON in globalSettings value:", err);
+                  // fall back to whatever makes sense for you:
+                  fieldInformation = {};
+                }
+              } else {
+
+                fieldInformation = {};
+                fieldInformation.settings = [];
+
+              }
+
+              const { success, notsuccess } = Object.assign({}, ...fieldInformation.settings);
+
+              var getWorkflowStatuses = fetch(_fullPluginPathHandler, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  action: "getWorkflowStatuses"
+                })
+              });
+              getWorkflowStatuses.then(async workflowStatuses => {
+                var jsonWorkflowStatusData = await workflowStatuses.json();
+                // console.log("Have workflows statuses as ", jsonWorkflowStatusData);
+                var $selectSuccess = $('#workflowStatusDropdownSuccess');
+                var $selectNotSuccess = $('#workflowStatusDropdownNotSuccess');
+                $selectSuccess.empty();
+                $selectNotSuccess.empty();
+                $selectSuccess.append('<option value="">-- Select a Workflow Status --</option>');
+                $selectNotSuccess.append('<option value="">-- Select a Workflow Status --</option>');
+                jsonWorkflowStatusData.forEach(element => {
+                  $selectSuccess.append($('<option>').val(element.Name).text(element.Name));
+                  $selectNotSuccess.append($('<option>').val(element.Name).text(element.Name));
+                })
+                if (success) $selectSuccess.val(success);
+                if (notsuccess) $selectNotSuccess.val(notsuccess);
+
+              })
+            }
+
+            function OpenInstallRequestActionMessageDialog() {
+              event.preventDefault();
+              $('#downloadRequestActionModal').fadeIn(200);
+
+              var attributeToInclude = ['MailNickname', 'Email', 'Fullname'];
+              attributeToInclude.forEach(element => {
+
+                var getRequestAtributes = fetch(_fullPluginPathHandler, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    action: "getRequestAtributes"
+                  })
+                });
+                getRequestAtributes.then(async workflowData => {
+                  //    console.log("Have response create teams as  " , );
+                  var jsonData = await workflowData.json();
+                  var $select = $('#attributeTypeDropdown' + element);
+                  $select.empty();
+                  $select.append('<option value="">-- Select an attribute --</option>');
+                  jsonData.forEach(element => {
+                    let stringName = element.Name.split(' - ');
+                    let nameComplete = stringName[1] ? stringName[1] : element.Name;
+                    $select.append($('<option>').val(element.Identifier).text(nameComplete));
+                  })
+                })
+              });
+              const downloadFile = `
+@using System;
+@using Newtonsoft.Json;
+@{
+    var fullName= "fullName";
+    var email = "email";
+    var mailNickname= "mailNickname";
+}
+
+@{
+foreach (var item in Model.Attributes)
+{
+ if (item.Type.Name == "[EMAIL]") {
+   email = @item.Value;
+}
+ if (item.Type.Name == "[mailNickname]") {
+   mailNickname= @item.Value;
+}
+ if (item.Type.Name == "[fullName]") {
+   fullName = @item.Value;
+}
+}
+
+@{
+    string RequestNumber = Model.RequestNumber;
+    var RequestNumberLength = Model.RequestNumber.Length;
+    var NewRequestNumber = "";
+}
+@{
+    for (var i = 0; i < RequestNumberLength; i++)
+    {
+        var stringnew = RequestNumber.Substring(i, 1);
+        NewRequestNumber = NewRequestNumber + " " + stringnew;
+    }
+}
+@{
+    var action = "EntraCreation";
+    var Message = "";
+
+@using Newtonsoft.Json;
+    var jsonData = new { mailNickname= mailNickname, action = action, email = email, fullName= fullName};
+
+var jsonString = JsonConvert.SerializeObject(jsonData, Formatting.Indented);
+}
+@jsonString
+
+
+                            `;
+              //const filename = "requestActionMessage.txt";
+
+              // const blob = new Blob([downloadFile], {
+              //   type: "text/plain;charset=utf-8",
+              // });
+              // const url = URL.createObjectURL(blob);
+              // const link = document.createElement("a");
+              // link.href = url;
+              // link.download = filename;
+              // document.body.appendChild(link);
+              // link.click();
+              // document.body.removeChild(link);
+              // URL.revokeObjectURL(url);
+
+            }
+
+            $('#ctl00_ctl00_cph_maintenance_globalSettingsFieldSet').before(`
+  <br>
+  <div>
+    <fieldset>
+      <br>
+
+      <button class="hrefButton" id="getPluginSnippet">
+        Download Plugin Powershell Snippet
+      </button>
+
+      <br>
+      <br>
+      <button class="hrefButton" id="requestActionMessageInstall">
+        Install Request Action Message
+      </button>
+      <div id="isRequestActionMessageInstalled"></div>
+    
+     
+<br><br>
+       <button class="hrefButton" id="actionRuleInstall">
+        Install Request Action Rule
+      </button>
+<br> <div id="requestActionUsage"></div><br>
+
+       <button class="hrefButton" id="configureSettings">
+        Configure Settings
+      </button>
+       <br>
+       <div class="configureSettingsText"></div>
+
+       <div class="loadingSpinner" id="InstallRequestActionRuleSpinner" role="status" style="display:none" aria-label="Loading…"></div>
+  <br>
+   <div id="installRequestactionRuleResponse"></div>
+<br>
+
+
+      <button class="hrefButton" id="testPlugin">
+        Test Plugin
+      </button>
+      <br>
+      <div class="loadingSpinner" id="Testspinner" role="status" style="display:none" aria-label="Loading…"></div>
+      <span id="TestResponse"></span>
+<br>
+      <button class="hrefButton" id="viewInstallInstructions">
+        View Install Instructions
+      </button>
+    </fieldset>
+    <div id="pluginStatus"></div>
+    <br>
+  </div>
+
+ <div id="installInstructionsModal" class="modalBox">
+  <div class="modal-content">
+    <button class="close" title="Close">&times;</button>
+
+    <h2><span>Installing the EntraCreation Request Action Plugin</span></h2>
+
+    <ul class="modal-steps">
+      <li>The first step in the plugin is to create a Service Principal in Azure. Click on the "Download Plugin Powershell Script" and run this against your Azure tenant.
+        This will generate a string that you can put into the box "Encrypted application string".
+      </li>
+
+      <li>On the plugin page, click on <strong>Install Request Action Message</strong> and select the options for your attributes.
+          Click on <strong>Install Request Action Rule</strong> to install the request action rule.
+         </li>
+
+      <li>Download the "Plugin Powershell Snippet" from the plugin page and use that on the Azure command line to create an App Registration.</li>
+
+      <li>The command will give you an encrypted string to place into the Global Settings section, the setting is called 'The encrypted application string.
+          </li>
+
+      <li>Click 'Test Plugin'. This will decrypt the string and check that it is possible to decrypt the string and connect to Azure (the test makes no changes, it will only check a successful response).</li>
+    </ul>
+  </div>
+</div>
+
+<div id="downloadRequestActionModal" class="modalBox">
+  <div class="modal-content">
+    <button class="close" title="Close">&times;</button>
+<br>
+    <h2><span>Install the request action message</span></h2>
+ <div class="form-group">
+      <label for="attributeTypeDropdownFullname">Choose a request Attribute for Fullname:</label><br>
+      <select id="attributeTypeDropdownFullname">
+        <option>Loading…</option>
+      </select>
+    </div>
+<br>
+    <div class="form-group">
+      <label for="attributeTypeDropdownEmail">Choose a request Attribute for Email:</label><br>
+      <select id="attributeTypeDropdownEmail" >
+        <option>Loading…</option>
+      </select>
+    </div>
+<br>
+
+    <div class="form-group">
+      <label for="attributeTypeDropdownMailNickname">Choose a request Attribute for MailNickname:</label><br>
+      <select id="attributeTypeDropdownMailNickname" >
+        <option>Loading…</option>
+      </select>
+    </div>
+<br>
+     <button class="hrefButton" id="InstallRequestActionMessage">
+        Install Request Action Message
+      </button>
+       <div class="loadingSpinner" id="InstallRequestActionMessageSpinner" role="status" style="display:none" aria-label="Loading…"></div>
+      <br><span id="InstalledRequestionActionMessageResponse"></span>
+      <br>
+      <ul class="modal-steps">
+       <li>
+      </li>
+    </ul>
+  </div>
+</div>
+
+
+<div id="configureSettingsModal" class="modalBox">
+  <div class="modal-content">
+    <button class="close" title="Close">&times;</button>
+<br>
+    <h2><span>Configure Settings</span></h2>
+ <div class="form-group">
+      <label for="workflowStatusDropdownSuccess">Choose a workflow status for successful user creation:</label><br>
+      <select id="workflowStatusDropdownSuccess" >
+        <option>Loading…</option>
+      </select>
+    </div><br>
+
+    <div class="form-group">
+      <label for="workflowStatusDropdownNotSuccess">Choose a workflow status for unsuccessful user creation:</label><br>
+      <select id="workflowStatusDropdownNotSuccess" >
+        <option>Loading…</option>
+      </select>
+    </div>
+<br>
+     <button class="hrefButton" id="setConfiguration">
+        Set Configuration
+      </button>
+       <div class="loadingSpinner" id="setConfigurationSpinner" role="status" style="display:none" aria-label="Loading…"></div>
+      <br><span id="InstalledRequestionActionMessageResponse"></span>
+      <br>
+      <ul class="modal-steps">
+       <li>
+      </li>
+    </ul>
+  </div>
+</div>
+
+<div id="setupActionRuleModal" class="modalBox">
+  <div class="modal-content">
+    <button class="close" title="Close">&times;</button>
+<br>
+    <h2><span>Install the Request Action Rule</span></h2>
+    <br>
+  <p>This section rule is used to determine the criteria for running the request action rule to create a new Entra User.</p>
+  <p>You can modify this later directly in the request action rule.</p>
+  <br>
+ <div class="form-group">
+      <label for="workflowDropdown">Choose a workflow for your request action rule:</label><br>
+      <select id="workflowDropdown">
+        <option>Loading…</option>
+      </select>
+    </div>
+<br>
+    <div class="form-group">
+      <label for="workflowStatusDropdown">Choose a workflow status for your request action rule:</label><br>
+      <select id="workflowStatusDropdown" >
+        <option>Loading…</option>
+      </select>
+    </div>
+<br>
+<br>
+     <button class="hrefButton" id="InstallRequestActionRule">
+        Install Request Action Rule
+      </button>
+       <div class="loadingSpinner" id="InstallRequestActionRuleSpinner" role="status" style="display:none" aria-label="Loading…"></div>
+      <br><span id="InstalledRequestionActionRuleResponse"></span>
+      <br>
+      <ul class="modal-steps">
+       <li>
+      </li>
+    </ul>
+  </div>
+</div>
+
+`);
+
+            window.top.document.getElementById("requestActionMessageInstall").onclick = OpenInstallRequestActionMessageDialog;
+            window.top.document.getElementById("actionRuleInstall").addEventListener("click", OpenInstallRequestRuleDialog);
+            // window.top.document.getElementById("createActionRule").onclick = OpenInstallRequestRuleDialog;
+            window.top.document.getElementById("viewInstallInstructions").onclick = openDialog;
+            window.top.document.getElementById("installInstructionsModal").onclick = openDialogModal;
+            window.top.document.getElementById("getPluginSnippet").onclick = downloadPowershellSnippet;
+            window.top.document.getElementById("testPlugin").onclick = testPlugin;
+            window.top.document.getElementById("InstallRequestActionMessage").onclick = InstallRequestActionMessage;
+            window.top.document.getElementById("InstallRequestActionRule").onclick = InstallRequestActionRule;
+            window.top.document.getElementById("configureSettings").onclick = openConfigureSettingsDialog;
+            window.top.document.getElementById("setConfiguration").onclick = setConfiguration;
+
+            // window.top.document.getElementById("createActionRule").onclick = createActionRule;
+            // window.top.document.getElementById("createActionRule").addEventListener("click", createActionRule);
+
+            $(".close").on("click", function (event) {
+              event.preventDefault();
+              console.log("Called close");
+              $('#installInstructionsModal').fadeOut();
+              $('#downloadRequestActionModal').fadeOut();
+              $('#setupActionRuleModal').fadeOut();
+              $('#configureSettingsModal').fadeOut();
+
+              // alert( "Handler for `click` called." );
+            });
+
+          }
+
+          document.addEventListener('DOMContentLoaded', function () {
+            if ($('#ctl00_ctl00_cph_maintenance_globalSettingsRepeater_ctl00_value').val()) {
+              $('#installPlugin').hide();
+              $('#additionalInstructions').show();
+              $('#entracreationPluginActivated').hide();
+              // $('#testPlugin').show();
+            } else {
+
+            }
+            var page = MarvalSoftware.UI.Controls.ScriptManager.getInstance().getPage();
+
+            // attach the display element
+            var template = document.querySelector('template').content;
+            this._element = window.top.document.importNode(template, true);
+            this._imageElement = this._element.querySelector('#MarvalSoftware-Plugins-EntraCreation');
+            //   page._contactSearcher._extensionInput.parentElement.insertBefore(this._element, page._contactSearcher._extensionInput.nextSibling);
+          }.bind(this));
+
+        }, // End init
+        _hideField: function (fieldName) {
+          var ChatbotField = $("label").filter(function () {
+            return $(this).text() == fieldName;
+          }).parent();
+
+          var cbField = ChatbotField.find("input").attr("id");
+          //   console.log("cbField is ", cbField);
+          $('#' + cbField).parent().hide();
+        },
+        _getFieldID: function (fieldName) {
+          var ChatbotField = $("label").filter(function () {
+            return $(this).text() == fieldName;
+          }).parent();
+
+          var cbField = ChatbotField.find("input").attr("id");
+          return cbField;
+        },
+        _setRegion: function (field) {
+          //   console.log("Setting region to ", field);
+          var regionField = $("label").filter(function () {
+            return $(this).text() == "@@Region";
+          }).parent();
+          regionField.find("input").val(field);
+
+          //   console.log("Have set region field")
+          $('#ctl00_ctl00_cph_apply_fakeApplyButton').click();
+          // console.log("Have region field as ", rfields);
+        },
+        _onDropdown: function (field, clientField) {
+          var field = $("label").filter(function () {
+            return $(this).text() == "@@AADObjectGUIDLocation";
+          }).parent()
+
+          switch (field.find("select").val()) {
+            case "In Marval":
+              field.find("input").val("entra");
+              break;
+            case "From Microsoft":
+              field.find("input").val("microsoft");
+              break;
+            case "In an Attribute":
+              field.find("input").val("attribute");
+              break;
+          }
+
+          EntraCreation._renderObjectLocationDropdown();
+        },
+        _getPluginPath: function () {
+          return this.attributes["data-pluginpath"].value;
+        },
+        _getPluginId: function () {
+          return this.attributes["data-pluginid"].value;
+        },
+        _getPluginCulture: function () {
+          return this.attributes["data-pluginculture"].value;
+        },
+        _getString: function (key, formatObject) {
+          return MarvalSoftware.Plugins.PluginResourceManager.getInstance().getString(this._getPluginId(), key, this._getPluginCulture(), formatObject);
+        },
+        _getUserEmail: async function () {
+          const url = "/MSM/RFP/Forms/Profile.aspx";
+
+          // Create and style the text content
+          let fetchedDom = $(await (await fetch(url)).text());
+          if (undefined == fetchedDom.find("#ctl00_cph_notifyMethod"))
+            return "";
+          else if (fetchedDom.find("#ctl00_cph_notifyMethod").text() != "Email") {
+            return "";
+          } else {
+            return fetchedDom.find("#ctl00_cph_notifyAddress").text();
+          }
+        },
+        _onBtnClick: function () {
+          event.preventDefault();
+          $("*").find('.initiate').prop('disabled', true);
+          EntraCreation._startChat();
+        },
+        _disconnectChat: function () {
+          event.preventDefault();
+          $("marvalsoftware-plugins-entracreation").parent().parent().fadeOut(300, function () { EntraCreation._pluginWindow.hide() });
+          $("*").find(".chatbot-container").fadeOut(300, function () { $("*").remove(".chatbot-container"); })
+          $("#EntraCreationPopup").remove()
+        }
+      });
+  })();
+</script>
