@@ -3,7 +3,7 @@
     "Organisation": "Marval Software",
     "DisplayName": "@@PluginDisplayname",
     "Icon": "img/entra.png",
-    "Version": "1.0.4",
+    "Version": "1.0.5",
     "SupportedVersions": [
         "15.7.1",
         "15.7.2",
