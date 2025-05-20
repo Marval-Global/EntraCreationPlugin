@@ -21,6 +21,7 @@ using System.Threading.Tasks;
 using Serilog;
 using System.Web.Script.Serialization;
 using MarvalSoftware.Data.ServiceDesk;
+using MarvalSoftware.Data.ServiceDesk.Rules;
 using System.Web;
 using MarvalSoftware.Rules;
 using MarvalSoftware.ServiceDesk.Facade;
@@ -29,13 +30,17 @@ using MarvalSoftware.ServiceDesk.Facade.Rules.RuleActions;
 using MarvalSoftware.DataTransferObjects.IntegrationMessages;
 using MarvalSoftware.ServiceDesk.Facade.Rules.RuleObjects;
 using MarvalSoftware.DataTransferObjects;
+using MarvalSoftware.DataTransferObjects.Rules;
 using MarvalSoftware;
 using MarvalSoftware.UI.WebUI.ServiceDesk.RFP.Plugins;
+using MarvalSoftware.UI.WebUI.ServiceDesk.RFP.Forms;
 using System.Net.Http;
 using Newtonsoft.Json;
+using MarvalSoftware.Data;
 public class Handler : PluginHandler
 {
     private ServiceDeskFacade serviceDeskFacade = new ServiceDeskFacade();
+    private RuleSetBroker rulesetBroker = new RuleSetBroker();
     private ActionMessageBroker actionMessageCreate = new ActionMessageBroker();
     private static readonly HttpClient httpClient = new HttpClient();
 
@@ -493,6 +498,22 @@ public class Handler : PluginHandler
                     //      Value = true
                     //  });
 
+                     int ruleSetIds = 0;
+                    using (var dataGrunt = new DataGrunt())
+                    {
+                        using (var dataReader = dataGrunt.ExecuteReader("ruleSet_getRuleSetIds", new DataGrunt.DataGruntParameter("ruleSetType", 5)))
+                        {
+                            var ruleSetIdOrdinal = dataReader.GetOrdinal("ruleSetId");
+                            while (dataReader.Read())
+                            {
+                                ruleSetIds = dataReader.GetInt32(ruleSetIdOrdinal);
+                                Log.Information("Have information as " + dataReader.GetInt32(ruleSetIdOrdinal));
+                            }
+                        }
+                    }
+
+
+
                     this.serviceDeskFacade.PersistRule(new MarvalSoftware.Rules.Rule()
                     {
                         Name = "Entra Action Rule - Automated",
@@ -507,7 +528,7 @@ public class Handler : PluginHandler
                        },
                         ActionsSummary = "Web-hook to URL http://test.com with Body TestRequestActionMessage including Headers Authorization: TestingAuth,Content-Type: application/json using Verb Post",
                         IsActive = true
-                    }, 4, referencedEntities, "RequestClassificationFilter");
+                    }, ruleSetIds, referencedEntities, "RequestClassificationFilter");
 
                     context.Response.Write("{ \"response\": \"Installed Action Rule Successfully" + "\" } ");
                 }
@@ -543,17 +564,7 @@ public class Handler : PluginHandler
                         var graphClient = new HttpClient();
                         graphClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
 
-                        // var mailNickname = "David.Testing";
-                        // var fullName = "David Testing";
-                        // var email = "david.testing@marval.com.au";
-
                         var password = GeneratePassword(12);
-
-                        // var stringencHelper = AesEncryptionHelper.Instance.Encrypt("Test");
-                        // Log.Information("Have test string as " + stringencHelper);
-                        // context.Response.ContentType = "text/plain";
-                        // var decryptstring = AesEncryptionHelper.Instance.Decrypt(stringencHelper);
-                        // context.Response.Write(accessToken + " " + stringencHelper + " " + decryptstring);
 
                         var userPayload = new
                         {
@@ -573,11 +584,11 @@ public class Handler : PluginHandler
                         string BearerToken = "Bearer " + result["access_token"];
                         var createResp = PostRequest(url, JsonConvert.SerializeObject(userPayload), BearerToken);
                         var jsonResp = JObject.Parse(createResp);
-                        Log.Information("EntraCreation returned " +  jsonResp);
+                        Log.Information("EntraCreation returned " + jsonResp);
                         string idToken = jsonResp["id"].Value<string>();
                         JToken err = jsonResp["error"];
                         string errorMsg = "";
-                       // var errorMsg  = jsonResp["error"]?["message"]?.ToString() ?? string.Empty;
+                        // var errorMsg  = jsonResp["error"]?["message"]?.ToString() ?? string.Empty;
                         var deserialized = JsonConvert.DeserializeObject<Dictionary<string, List<Dictionary<string, string>>>>(Settings);
                         var list = deserialized["settings"];
                         string failureStatus = list[1]["notsuccess"];
@@ -600,13 +611,7 @@ public class Handler : PluginHandler
                             MoveMSMStatus(requestIdInt, successStatus);
                             AddMsmNote(requestIdInt, "Created user successfully with ObjectId: " + idToken);
                         }
-                        // Log.Information("Have response in EntraCreation as " + errorMsg);
-                        //  var createResp = graphClient.Send(
-                        //             "https://graph.microsoft.com/v1.0/users",
-                        //             new StringContent(JsonConvert.SerializeObject(userPayload), Encoding.UTF8, "application/json"));
-                        //             Log.Information("New user created " +  createResp.IsSuccessStatusCode);
-                        // context.Response.ContentType = "text/plain";
-
+                       
                         context.Response.Write(createResp);
                     }
                     catch (Exception ex)
@@ -658,9 +663,6 @@ public class Handler : PluginHandler
 
 
         List<int> MarvalIds = new List<int>();
-
-        //  Log.Information("Stage Name: " + stageName);
-
         var workflowInfo = GetRequestWorkflowId(requestId);
         var httpWebRequest = Handler.BuildRequest(this.MSMBaseUrl + string.Format("/api/serviceDesk/operational/workflows/{0}", workflowInfo.WorkflowId), null, "GET");
 
@@ -710,11 +712,11 @@ public class Handler : PluginHandler
             if (targetStateID == workflowInfoEndState.StatusId)
             {
                 Log.Information("Target state is " + targetStateID);
-                //AddMsmNote(requestId, "The status has been moved to \"" + targetStateName + "\"");
+                // AddMsmNote(requestId, "The status has been moved to \"" + targetStateName + "\"");
             }
             else
             {
-               // AddMsmNote(requestId, "The Entra integration tried to move the status to " + targetStateName + " but was unable to due to a business rule violation");
+                // AddMsmNote(requestId, "The Entra integration tried to move the status to " + targetStateName + " but was unable to due to a business rule violation");
             }
         }
         else
