@@ -103,6 +103,7 @@
             $('#ct100_overlay_id1').hide();
             $('#ctl00_ctl00_cph_maintenance_worksWithMsm').removeClass('unsigned');
             $('#ctl00_ctl00_cph_maintenance_worksWithMsm').addClass('signed');
+           
             checkRequestActionMessageExists();
             var that = this;
 
@@ -122,9 +123,12 @@
               if (settingsVal) {
 
               } else {
-                $('.configureSettingsText').empty();
-                $('.configureSettingsText').append("You have not yet configured your settings, please configure your settings before using the request actions integration.");
-                $('.configureSettingsText').css('color', 'red');
+              //  $('.configureSettingsText').empty();
+               // $('.configureSettingsText').append("You have not yet configured your settings, please configure your settings before using the request actions integration.");
+              //  $('.configureSettingsText').css('color', 'red');
+                $('#pluginStatus').css('color', 'red');
+                $('#pluginStatus').append("You have not yet configured your settings, please configure your settings before using the request actions integration.");
+               
               }
 
             }
@@ -145,13 +149,15 @@
                 jsonObject.forEach(element => {
                   countItems++;
                   if (element.Actions.includes("MarvalSoftware.Plugins.EntraCreation/") && element.Actions.includes(version)) {
-                    $('#requestActionUsage').after("<div id=\"RequestUsage\">You are currently using the EntraCreation request action message in a request action.</div>");
-                    $('#RequestUsage').css("color", "green");
+                 //   $('#requestActionUsage').after("<div id=\"RequestUsage\">You are currently using the EntraCreation request action message in a request action.</div>");
+                    $('#pluginStatus').after("<br><div  style=\"color:green\" id=\"RequestUsage\">You are currently using the EntraCreation request action message in a request action.</div>");
+                  //  $('#RequestUsage').css("color", "green");
                     foundActionMessage = true;
                     return;
                   } else if (element.Actions.includes("MarvalSoftware.Plugins.EntraCreation/")) {
-                    $('#requestActionUsage').after("<div id=\"RequestUsage\">It appears as though you are currently not using the correct version (" + version + ") of the request action in an action message.<br>Navigate <a target='_blank' href='/MSM/RFP/Forms/RequestAction.aspx?id=" + element.Identifier + "'>here</a> to set the correct version.</div>");
-                    $('#RequestUsage').css("color", "red");
+                  //  $('#requestActionUsage').after("<div id=\"RequestUsage\">It appears as though you are currently not using the correct version (" + version + ") of the request action in an action message.<br>Navigate <a target='_blank' href='/MSM/RFP/Forms/RequestAction.aspx?id=" + element.Identifier + "'>here</a> to set the correct version.</div>");
+                 //   $('#RequestUsage').css("color", "red");
+                    $('#pluginStatus').after('<br><div id="RequestUsage" style="color:red">You are currently using the EntraCreation request action message in a request action.</div>');
                     foundActionMessage = true;
                     return;
                   }
@@ -520,7 +526,7 @@ mappings.forEach(({ token, selector }) => {
               getLatestPluginVersion();
               getRequestActionUsage();
               checkConfigureSettings();
-
+            
               $('head').append(`
         <style>
           .loadingSpinner {
@@ -589,6 +595,21 @@ mappings.forEach(({ token, selector }) => {
   padding-bottom: .25rem;
 }
 
+.box {
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    padding: 1em;
+    margin-bottom: 1.5em;
+    background: #fafafa;
+  }
+  .box h3 {
+    margin-top: 0;
+  }
+  .or-text {
+    margin: 0 1em;
+    font-weight: bold;
+    vertical-align: middle;
+  }
 
 #isRequestActionMessageInstalled {
   color: transparent;
@@ -648,14 +669,67 @@ color: transparent;
 }
 
 
+.modal-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;    /* horizontally center all direct children */
+  text-align: center;      /* center text inside headings, list items, etc. */
+  padding: 1.5rem;         /* optional, for a bit of breathing room */
+}
+
+.modal-content .modal-steps {
+  padding: 0;
+  list-style-position: inside; /* keep the bullets but centered */
+  margin: 1rem 0;
+}
+
+.modal-content input,
+.modal-content .hrefButton,
+.modal-content .close {
+  /* make sure buttons/inputs shrink to their contents */
+  display: inline-block;
+  margin: 0.5rem 0;
+}
+
+
         </style>
       `);
+      checkConfigurationFields();
             });
             function openDialog() {
               event.preventDefault();
               $('#installInstructionsModal').fadeIn(200);
 
             }
+
+            function checkConfigurationFields() {
+              let applicationStringValue = $('#ctl00_ctl00_cph_maintenance_globalSettingsRepeater_ctl00_value').val();
+             let MarvalAPIValue = $('#ctl00_ctl00_cph_maintenance_globalSettingsRepeater_ctl01_value').val();
+              let SettingValue = $('#ctl00_ctl00_cph_maintenance_globalSettingsRepeater_ctl02_value').val();
+
+
+
+
+              console.log("Values are %s and %s and %s ",applicationStringValue, MarvalAPIValue , SettingValue);
+              if (!applicationStringValue  || applicationStringValue.trim() === "") {
+                    $('#pluginStatus').append('<br><span style="color:red">You have no App Registration configured, please configure the application string in Step 1.</span>');
+              } else {
+                $('#pluginStatus').append('<br><span style="color:green">You have an App Registration configured.</span>');
+              }
+              if (!MarvalAPIValue || MarvalAPIValue.trim() === "") {
+                console.log("Marval api valuie is blank")
+                $('#pluginStatus').append('<br><span style="color:red">You have no Marval API key configured, please add a Marval API key below.</span>');
+              } else {
+                $('#pluginStatus').append('<br><span style="color:green">You have a Marval API key configured.</span>');
+              }
+              if (!SettingValue || SettingValue.trim() === "") {
+                $('#pluginStatus').append('<br><span style="color:red">You have no settings configured, please click "Configure Settings" to configure the workflow status\'.</span>');
+              } else {
+                $('#pluginStatus').append('<br><span style="color:green">You have settings configured.</span>');
+              }
+
+            }
+
             function checkRequestActionMessageExists() {
               var requestActionMessageName = "Entra Integration Message - Automated";
               var foundItem = false;
@@ -674,12 +748,14 @@ color: transparent;
                   });
                 if (foundItem == true) {
 
-                  $('#isRequestActionMessageInstalled').append('You have a request action messages in your list of request action messages <a href="/MSM/RFP/Forms/RequestActionMessage.aspx" >here</a>, you do not need to install it.');
-                  $('#isRequestActionMessageInstalled').css('color', 'green');
-                  $('#isRequestActionMessageInstalled').attr('')
+                //  $('#isRequestActionMessageInstalled').append('You have a request action message in your list of request action messages <a href="/MSM/RFP/Forms/RequestActionMessage.aspx" >here</a>, you do not need to install it.');
+                  $('#pluginStatus').append('<br><span style="color:green">You have a request action message in your list of request action messages <a href="/MSM/RFP/Forms/RequestActionMessage.aspx" >here</a>, you do not need to install it.</span>');
+               //   $('#isRequestActionMessageInstalled').css('color', 'green');
+               //   $('#isRequestActionMessageInstalled').attr('')
                 } else {
-                  $('#isRequestActionMessageInstalled').append('You currently do not have the action message installed, click the button above to install it.<br>Once installed, it will appear in the list <a href="/MSM/RFP/Forms/RequestActionMessage.aspx">here</a> as an item called "Entra Integration Message - Automated"');
-                  $('#isRequestActionMessageInstalled').css('color', 'red');
+                  $('#pluginStatus').append('<span style="color:green">You currently do not have the action message installed, click the button above to install it.<br>Once installed, it will appear in the list <a href="/MSM/RFP/Forms/RequestActionMessage.aspx">here</a> as an item called "Entra Integration Message - Automated</span>"');
+                 // $('#isRequestActionMessageInstalled').append('You currently do not have the action message installed, click the button above to install it.<br>Once installed, it will appear in the list <a href="/MSM/RFP/Forms/RequestActionMessage.aspx">here</a> as an item called "Entra Integration Message - Automated"');
+                //  $('#isRequestActionMessageInstalled').css('color', 'red');
                 }
               })
                 .fail(function () {
@@ -740,6 +816,29 @@ color: transparent;
                 })
               })
             }
+
+           async function encryptDetails() {
+              event.preventDefault();
+              console.log("Setting Configuration");
+              let unencryptedString = $('#appRegistrationTenant').val() + "^" + $('#appRegistrationAppId').val() + "^" + $('#appRegistrationSecret').val();
+              console.log("String to encrypt is ", unencryptedString);
+              var currentUrl = window.top.location.host;
+             // var pluginPathHandler = "https://" + currentUrl + EntraCreation._getPluginPath() + "Handler/Handler.ashx";
+              const res = await fetch(_fullPluginPathHandler, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    action: "encrypt",
+                    encryptString: unencryptedString
+                  })
+                });
+                const encryptResponse = await res.text();
+                $('#ctl00_ctl00_cph_maintenance_globalSettingsRepeater_ctl00_value').val(encryptResponse);
+                $('#ctl00_ctl00_cph_apply_fakeApplyButton').click();
+               // console.log("Have response as ", encryptResponse)
+
+            }
+
 
             function setConfiguration() {
               event.preventDefault();
@@ -803,6 +902,11 @@ color: transparent;
                 if (notsuccess) $selectNotSuccess.val(notsuccess);
 
               })
+            }
+            function OpenmanualAppRegistrationDialog() {
+              event.preventDefault();
+              $('#manualAppRegistrationModal').fadeIn(200);
+
             }
 
             function OpenInstallRequestActionMessageDialog() {
@@ -897,53 +1001,67 @@ var jsonString = JsonConvert.SerializeObject(jsonData, Formatting.Indented);
             }
 
             $('#ctl00_ctl00_cph_maintenance_globalSettingsFieldSet').before(`
-  <br>
-  <div>
-    <fieldset>
-      <br>
 
-      <button class="hrefButton" id="getPluginSnippet">
-        Download Plugin Powershell Snippet
-      </button>
+            <section class="box selection-section">
+              <h3>Plugin Status</h3>
 
-      <br>
-      <br>
-      <button class="hrefButton" id="requestActionMessageInstall">
-        Install Request Action Message
-      </button>
-      <div id="isRequestActionMessageInstalled"></div>
-    
-     
-<br><br>
-       <button class="hrefButton" id="actionRuleInstall">
-        Install Request Action Rule
-      </button>
-<br> <div id="requestActionUsage"></div><br>
+              <div id="pluginStatus"></div>
 
-       <button class="hrefButton" id="configureSettings">
-        Configure Settings
-      </button>
-       <br>
-       <div class="configureSettingsText"></div>
-
-       <div class="loadingSpinner" id="InstallRequestActionRuleSpinner" role="status" style="display:none" aria-label="Loading…"></div>
-  <br>
-   <div id="installRequestactionRuleResponse"></div>
-<br>
+              </section><br><br>
 
 
-      <button class="hrefButton" id="testPlugin">
-        Test Plugin
-      </button>
-      <br>
-      <div class="loadingSpinner" id="Testspinner" role="status" style="display:none" aria-label="Loading…"></div>
-      <span id="TestResponse"></span>
-<br>
-      <button class="hrefButton" id="viewInstallInstructions">
-        View Install Instructions
-      </button>
-    </fieldset>
-    <div id="pluginStatus"></div>
+  <section class="box selection-section">
+  <h3>Step 1: Choose one</h3>
+  <button class="hrefButton" id="getPluginSnippet">
+    Download Plugin PowerShell Snippet
+  </button>
+  <span class="or-text">or</span>
+  <button class="hrefButton" id="manualAppRegistration">
+    Manually Create App Registration
+  </button>
+</section>
+
+<!-- Main Actions Box -->
+<section class="box main-actions">
+  <h3>Step 2: Install & Configure</h3>
+
+  <button class="hrefButton" id="requestActionMessageInstall">
+    Install Request Action Message
+  </button>
+  <div id="isRequestActionMessageInstalled"></div>
+
+  <hr>
+
+  <button class="hrefButton" id="actionRuleInstall">
+    Install Request Action Rule
+  </button>
+  <div id="requestActionUsage"></div>
+
+  <hr>
+
+  <button class="hrefButton" id="configureSettings">
+    Configure Settings
+  </button>
+  <div class="configureSettingsText"></div>
+
+  <hr>
+
+  <button class="hrefButton" id="testPlugin">
+    Test Plugin
+  </button>
+  <div class="loadingSpinner" id="Testspinner" role="status" style="display:none" aria-label="Loading…"></div>
+  <span id="TestResponse"></span>
+
+  <hr>
+
+  <button class="hrefButton" id="viewInstallInstructions">
+    View Install Instructions
+  </button>
+
+
+</section>
+
+  
     <br>
   </div>
 
@@ -968,6 +1086,28 @@ var jsonString = JsonConvert.SerializeObject(jsonData, Formatting.Indented);
           </li>
 
       <li>Click 'Test Plugin'. This will decrypt the string and check that it is possible to decrypt the string and connect to Azure (the test makes no changes, it will only check a successful response).</li>
+    </ul>
+  </div>
+</div>
+
+ <div id="manualAppRegistrationModal" class="modalBox">
+  <div class="modal-content">
+    <button class="close" title="Close">&times;</button>
+
+    <h2><span>Manually Installing the App Registration</span></h2>
+
+    <ul class="modal-steps">
+      <li>To run the entra plugin and authenticate to your Azure tenant, the plugin requires an app registration to be created in your Tenant. The details of the app registration are securely encrypted and stored in the plugin.
+      </li>
+
+           <input placeholder="TenantId" id="appRegistrationTenant"  type="text"></input><br>
+           <input placeholder="Application Client Id" id="appRegistrationAppId" type="text"></input><br>
+           <input placeholder="Client Secret" id="appRegistrationSecret" type="text"></input><br>
+<br>
+<b>Please ensure you have included the Application permission User.ReadWrite.All and granted admin consent to the application.</b><br><br>
+<button class="hrefButton" id="encryptDetails">Encrypt and Store in Plugin</button>
+      
+<br>
     </ul>
   </div>
 </div>
@@ -1092,16 +1232,23 @@ var jsonString = JsonConvert.SerializeObject(jsonData, Formatting.Indented);
 `);
 
             window.top.document.getElementById("requestActionMessageInstall").onclick = OpenInstallRequestActionMessageDialog;
+            window.top.document.getElementById("manualAppRegistration").onclick = OpenmanualAppRegistrationDialog;
+            
             window.top.document.getElementById("actionRuleInstall").addEventListener("click", OpenInstallRequestRuleDialog);
             // window.top.document.getElementById("createActionRule").onclick = OpenInstallRequestRuleDialog;
             window.top.document.getElementById("viewInstallInstructions").onclick = openDialog;
             window.top.document.getElementById("installInstructionsModal").onclick = openDialogModal;
+
             window.top.document.getElementById("getPluginSnippet").onclick = downloadPowershellSnippet;
             window.top.document.getElementById("testPlugin").onclick = testPlugin;
             window.top.document.getElementById("InstallRequestActionMessage").onclick = InstallRequestActionMessage;
+            
             window.top.document.getElementById("InstallRequestActionRule").onclick = InstallRequestActionRule;
             window.top.document.getElementById("configureSettings").onclick = openConfigureSettingsDialog;
             window.top.document.getElementById("setConfiguration").onclick = setConfiguration;
+            window.top.document.getElementById("encryptDetails").onclick = encryptDetails;
+
+            
 
             // window.top.document.getElementById("createActionRule").onclick = createActionRule;
             // window.top.document.getElementById("createActionRule").addEventListener("click", createActionRule);
@@ -1110,6 +1257,8 @@ var jsonString = JsonConvert.SerializeObject(jsonData, Formatting.Indented);
               event.preventDefault();
               console.log("Called close");
               $('#installInstructionsModal').fadeOut();
+              $('#manualAppRegistrationModal').fadeOut();
+              
               $('#downloadRequestActionModal').fadeOut();
               $('#setupActionRuleModal').fadeOut();
               $('#configureSettingsModal').fadeOut();
@@ -1131,6 +1280,7 @@ var jsonString = JsonConvert.SerializeObject(jsonData, Formatting.Indented);
             var page = MarvalSoftware.UI.Controls.ScriptManager.getInstance().getPage();
 
             // attach the display element
+
             var template = document.querySelector('template').content;
             this._element = window.top.document.importNode(template, true);
             this._imageElement = this._element.querySelector('#MarvalSoftware-Plugins-EntraCreation');
