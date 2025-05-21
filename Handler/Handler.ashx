@@ -615,7 +615,7 @@ public class Handler : PluginHandler
                             Log.Information("No error message in the response.");
 
                             MoveMSMStatus(requestIdInt, successStatus);
-                            AddMsmNote(requestIdInt, "Created user successfully with ObjectId: " + idToken);
+                            AddMsmNote(requestIdInt, "Created user successfully with ObjectId: " + idToken + " and email address " + email);
                         }
                        
                         context.Response.Write(createResp);
