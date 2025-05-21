@@ -348,9 +348,9 @@ Write-Host "You will also be required to grant admin consent to the newly create
 @using System;
 @using Newtonsoft.Json;
 @{
-    var fullName= "fullName";
+    var Lastname= "Lastname";
     var email = "email";
-    var mailNickname= "mailNickname";
+    var Firstname= "Firstname";
 }
 
 @{
@@ -359,11 +359,11 @@ foreach (var item in Model.Attributes)
  if (item.Type.Name == "[EMAIL]") {
    email = @item.Value;
 }
- if (item.Type.Name == "[mailNickname]") {
-   mailNickname= @item.Value;
+ if (item.Type.Name == "[Firstname]") {
+   Firstname= @item.Value;
 }
- if (item.Type.Name == "[fullName]") {
-   fullName = @item.Value;
+ if (item.Type.Name == "[Lastname]") {
+   Lastname = @item.Value;
 }
 }
 
@@ -384,28 +384,38 @@ foreach (var item in Model.Attributes)
     var Message = "";
 
 @using Newtonsoft.Json;
-    var jsonData = new { mailNickname= mailNickname, action = action, email = email, fullName= fullName, requestId = @Model.Identifier};
+    var jsonData = new { Lastname= Lastname, action = action, email = email, Firstname= Firstname, requestId = @Model.Identifier};
 
 var jsonString = JsonConvert.SerializeObject(jsonData, Formatting.Indented);
 }
 @jsonString
                             `;
+                            const mappings = [
+  { token: "[Firstname]", selector: "#attributeTypeDropdownFirstname" },
+  { token: "[Lastname]",        selector: "#attributeTypeDropdownLastname"     },
+  { token: "[EMAIL]",           selector: "#attributeTypeDropdownEmail"        }
+];
 
-              var fullNameAttribute = $("#attributeTypeDropdownFullname  option:selected").text();
-              var EmailAttribute = $("#attributeTypeDropdownEmail  option:selected").text();
-              var NicknameAttribute = $("#attributeTypeDropdownMailNickname  option:selected").text();
+mappings.forEach(({ token, selector }) => {
+  const val = $(`${selector} option:selected`).text();
+  actionMessageText = actionMessageText.replace(token, val);
+
+             // var fullNameAttribute = $("#attributeTypeDropdownFullname  option:selected").text();
+            //  var EmailAttribute = $("#attributeTypeDropdownEmail  option:selected").text();
+           //   var NicknameAttribute = $("#attributeTypeDropdownMailNickname  option:selected").text();
 
               // console.log("User full name is ", fullNameAttribute);
-              actionMessageText = actionMessageText.replace("[mailNickname]", NicknameAttribute);
-              actionMessageText = actionMessageText.replace("[fullName]", fullNameAttribute);
-              actionMessageText = actionMessageText.replace("[EMAIL]", EmailAttribute);
-              if (NicknameAttribute === '-- Select an attribute --' || fullNameAttribute === '-- Select an attribute --' || EmailAttribute === '-- Select an attribute --') {
+            //  actionMessageText = actionMessageText.replace("[mailNickname]", NicknameAttribute);
+            //  actionMessageText = actionMessageText.replace("[fullName]", fullNameAttribute);
+            //  actionMessageText = actionMessageText.replace("[EMAIL]", EmailAttribute);
+              if (val === '-- Select an attribute --') {
                 $('#InstalledRequestionActionMessageResponse').empty();
                 $('#InstalledRequestionActionMessageResponse').append('You must specify an attribute for each item');
                 $('#InstalledRequestionActionMessageResponse').css('color', 'red');
                 $('#InstallRequestActionMessageSpinner').hide();
                 return;
               }
+            });
               var currentUrl = window.top.location.host;
               var pluginPathHandler = "https://" + currentUrl + EntraCreation._getPluginPath() + "Handler/Handler.ashx";
               $('#InstallRequestActionMessage').attr('disabled', true);
@@ -799,7 +809,7 @@ color: transparent;
               event.preventDefault();
               $('#downloadRequestActionModal').fadeIn(200);
 
-              var attributeToInclude = ['MailNickname', 'Email', 'Fullname'];
+              var attributeToInclude = ['Firstname', 'Email', 'Lastname'];
               attributeToInclude.forEach(element => {
 
                 var getRequestAtributes = fetch(_fullPluginPathHandler, {
@@ -826,9 +836,9 @@ color: transparent;
 @using System;
 @using Newtonsoft.Json;
 @{
-    var fullName= "fullName";
+    var Firstname= "Firstname";
     var email = "email";
-    var mailNickname= "mailNickname";
+    var Lastname= "Lastname";
 }
 
 @{
@@ -837,11 +847,11 @@ foreach (var item in Model.Attributes)
  if (item.Type.Name == "[EMAIL]") {
    email = @item.Value;
 }
- if (item.Type.Name == "[mailNickname]") {
-   mailNickname= @item.Value;
+ if (item.Type.Name == "[Firstname]") {
+   Firstname= @item.Value;
 }
- if (item.Type.Name == "[fullName]") {
-   fullName = @item.Value;
+ if (item.Type.Name == "[Lastname]") {
+   Lastname = @item.Value;
 }
 }
 
@@ -862,7 +872,7 @@ foreach (var item in Model.Attributes)
     var Message = "";
 
 @using Newtonsoft.Json;
-    var jsonData = new { mailNickname= mailNickname, action = action, email = email, fullName= fullName};
+    var jsonData = new { Firstname= Firstname, action = action, email = email, Lastname= Lastname};
 
 var jsonString = JsonConvert.SerializeObject(jsonData, Formatting.Indented);
 }
@@ -968,12 +978,19 @@ var jsonString = JsonConvert.SerializeObject(jsonData, Formatting.Indented);
 <br>
     <h2><span>Install the request action message</span></h2>
  <div class="form-group">
-      <label for="attributeTypeDropdownFullname">Choose a request Attribute for Fullname:</label><br>
-      <select id="attributeTypeDropdownFullname">
+      <label for="attributeTypeDropdownFirstname">Choose a request Attribute for First Name:</label><br>
+      <select id="attributeTypeDropdownFirstname">
         <option>Loading…</option>
       </select>
     </div>
 <br>
+ <div class="form-group">
+      <label for="attributeTypeDropdownLastname">Choose a request Attribute for Last Name:</label><br>
+      <select id="attributeTypeDropdownLastname">
+        <option>Loading…</option>
+      </select>
+    </div>
+    <br>
     <div class="form-group">
       <label for="attributeTypeDropdownEmail">Choose a request Attribute for Email:</label><br>
       <select id="attributeTypeDropdownEmail" >
@@ -982,12 +999,12 @@ var jsonString = JsonConvert.SerializeObject(jsonData, Formatting.Indented);
     </div>
 <br>
 
-    <div class="form-group">
-      <label for="attributeTypeDropdownMailNickname">Choose a request Attribute for MailNickname:</label><br>
-      <select id="attributeTypeDropdownMailNickname" >
-        <option>Loading…</option>
-      </select>
-    </div>
+   <!-- <div class="form-group">
+       <label for="attributeTypeDropdownMailNickname">Choose a request Attribute for MailNickname:</label><br>
+       <select id="attributeTypeDropdownMailNickname" >
+         <option>Loading…</option>
+       </select>
+     </div> -->
 <br>
      <button class="hrefButton" id="InstallRequestActionMessage">
         Install Request Action Message
