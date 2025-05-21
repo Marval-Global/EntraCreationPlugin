@@ -109,6 +109,8 @@ public class Handler : PluginHandler
 
         public string email { get; set; }
         public string mailNickname { get; set; }
+        public string Firstname { get; set; }
+        public string Lastname { get; set; }
         public string fullName { get; set; }
         public string requestId { get; set; }
 
@@ -398,6 +400,8 @@ public class Handler : PluginHandler
                 var actionMessageURL = data.actionMessageURL;
                 var actionMessageId = data.actionMessageId;
                 var mailNickname = data.mailNickname;
+                var Firstname = data.Firstname;
+                var Lastname = data.Lastname;
                 var fullName = data.fullName;
                 var requestId = data.requestId;
 
@@ -507,7 +511,7 @@ public class Handler : PluginHandler
                             while (dataReader.Read())
                             {
                                 ruleSetIds = dataReader.GetInt32(ruleSetIdOrdinal);
-                                Log.Information("Have information as " + dataReader.GetInt32(ruleSetIdOrdinal));
+                               
                             }
                         }
                     }
@@ -569,8 +573,10 @@ public class Handler : PluginHandler
                         var userPayload = new
                         {
                             accountEnabled = true,
-                            displayName = fullName,
-                            mailNickname = mailNickname,
+                            displayName = Firstname + " " + Lastname,
+                            mailNickname = Firstname + Lastname,
+                            givenName = Firstname,
+                            surname = Lastname,
                             userPrincipalName = email,
                             passwordProfile = new
                             {
@@ -699,7 +705,7 @@ public class Handler : PluginHandler
             Log.Information("Path to " + targetStateName);
             foreach (int id in path)
             {
-                Log.Information("Have id to go to " + id);
+                
                 Dictionary<string, object> workflowUpdate = new Dictionary<string, object>();
                 workflowUpdate["WorkflowStatusId"] = id;
                 var httpWebRequest4 = Handler.BuildRequest(this.MSMBaseUrl + string.Format("/api/serviceDesk/integration/requests/{0}/partial", requestId), JsonHelper.ToJson(workflowUpdate), "PUT");
