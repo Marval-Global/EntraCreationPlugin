@@ -147,24 +147,24 @@
                 let countItems = 0;
 
                 jsonObject.forEach(element => {
-                  countItems++;
+                    countItems++;
                   if (element.Actions.includes("MarvalSoftware.Plugins.EntraCreation/") && element.Actions.includes(version)) {
                  //   $('#requestActionUsage').after("<div id=\"RequestUsage\">You are currently using the EntraCreation request action message in a request action.</div>");
-                    $('#pluginStatus').after("<br><div  style=\"color:green\" id=\"RequestUsage\">You are currently using the EntraCreation request action message in a request action.</div>");
+                    $('#pluginStatus').after("<br><div  style=\"color:green\" id=\"RequestUsage\">You are currently using the Entra Creation request action message in a request action.</div>");
                   //  $('#RequestUsage').css("color", "green");
                     foundActionMessage = true;
                     return;
                   } else if (element.Actions.includes("MarvalSoftware.Plugins.EntraCreation/")) {
                   //  $('#requestActionUsage').after("<div id=\"RequestUsage\">It appears as though you are currently not using the correct version (" + version + ") of the request action in an action message.<br>Navigate <a target='_blank' href='/MSM/RFP/Forms/RequestAction.aspx?id=" + element.Identifier + "'>here</a> to set the correct version.</div>");
                  //   $('#RequestUsage').css("color", "red");
-                    $('#pluginStatus').after('<br><div id="RequestUsage" style="color:red">You are currently using the EntraCreation request action message in a request action.</div>');
+                    $('#pluginStatus').after('<br><div id="RequestUsage" style="color:green">You are currently using the Entra Creation request action message in a request action.</div>');
                     foundActionMessage = true;
                     return;
                   }
                 });
 
                 if (countItems === jsonObject.length && !foundActionMessage) {
-                  $('#requestActionUsage').after('<div id="RequestUsage">You do not have a request action configured.<br>Click the button above to install it.<br>Once it is installed, click <a target="_blank" href="/MSM/RFP/Forms/RequestActions.aspx">here</a> and look for an item called "Entra Action Rule - Automated" </div>');
+                  $('#requestActionUsage').after('<div id="RequestUsage">You do not have a request action configured.<br>Click the button below to install it.<br>Once it is installed, click <a target="_blank" href="/MSM/RFP/Forms/RequestActions.aspx">here</a> and look for an item called "Entra Action Rule - Automated" </div>');
                   $('#RequestUsage').css("color", "red");
                 }
 
@@ -753,7 +753,7 @@ color: transparent;
                //   $('#isRequestActionMessageInstalled').css('color', 'green');
                //   $('#isRequestActionMessageInstalled').attr('')
                 } else {
-                  $('#pluginStatus').append('<span style="color:green">You currently do not have the action message installed, click the button above to install it.<br>Once installed, it will appear in the list <a href="/MSM/RFP/Forms/RequestActionMessage.aspx">here</a> as an item called "Entra Integration Message - Automated</span>"');
+                  $('#pluginStatus').append('<br><span style="color:red">You currently do not have the action message installed, click the button below to install it.<br>Once installed, it will appear in the list <a href="/MSM/RFP/Forms/RequestActionMessage.aspx">here</a> as an item called "Entra Integration Message - Automated</span>"');
                  // $('#isRequestActionMessageInstalled').append('You currently do not have the action message installed, click the button above to install it.<br>Once installed, it will appear in the list <a href="/MSM/RFP/Forms/RequestActionMessage.aspx">here</a> as an item called "Entra Integration Message - Automated"');
                 //  $('#isRequestActionMessageInstalled').css('color', 'red');
                 }

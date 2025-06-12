@@ -382,6 +382,7 @@ public class Handler : PluginHandler
                 RequestData data;
                 try
                 {
+                    Log.Information("json: ", json);
                     data = JsonConvert.DeserializeObject<RequestData>(json);
                 }
                 catch (JsonException)
@@ -502,7 +503,7 @@ public class Handler : PluginHandler
                     //      Value = true
                     //  });
 
-                     int ruleSetIds = 0;
+                    int ruleSetIds = 0;
                     using (var dataGrunt = new DataGrunt())
                     {
                         using (var dataReader = dataGrunt.ExecuteReader("ruleSet_getRuleSetIds", new DataGrunt.DataGruntParameter("ruleSetType", 5)))
@@ -511,7 +512,7 @@ public class Handler : PluginHandler
                             while (dataReader.Read())
                             {
                                 ruleSetIds = dataReader.GetInt32(ruleSetIdOrdinal);
-                               
+
                             }
                         }
                     }
@@ -617,7 +618,7 @@ public class Handler : PluginHandler
                             MoveMSMStatus(requestIdInt, successStatus);
                             AddMsmNote(requestIdInt, "Created user successfully with ObjectId: " + idToken + " and email address " + email);
                         }
-                       
+
                         context.Response.Write(createResp);
                     }
                     catch (Exception ex)
@@ -705,7 +706,7 @@ public class Handler : PluginHandler
             Log.Information("Path to " + targetStateName);
             foreach (int id in path)
             {
-                
+
                 Dictionary<string, object> workflowUpdate = new Dictionary<string, object>();
                 workflowUpdate["WorkflowStatusId"] = id;
                 var httpWebRequest4 = Handler.BuildRequest(this.MSMBaseUrl + string.Format("/api/serviceDesk/integration/requests/{0}/partial", requestId), JsonHelper.ToJson(workflowUpdate), "PUT");
